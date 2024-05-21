@@ -7,6 +7,7 @@ import json
 import base64
 import requests
 
+
 TENANT_ID = 'aaaaa-aaaa-aaaaa'
 CLIENT_ID = 'bbbbb-bbbb-bbbbb'
 
@@ -24,10 +25,16 @@ def Validate_access_token(access_token):
     #get public key
     url = response["jwks_uri"]
     response = requests.get(url).json()
+    public_key = ""
+    for key in response["keys"]:
+        if key["x5t"] == header["kid"] and key["kid"] == header["kid"]:
+            public_key = key["x5c"][0]
+            break
 
     # verify access_token
     try:
-        decoded = jwt.decode(access_token, response["keys"], algorithms=["RS256"])
+        pem_public_key = f'''-----BEGIN CERTIFICATE-----\n{public_key}\n-----END CERTIFICATE-----'''
+        decoded = jwt.decode(access_token, pem_public_key, algorithms=["RS256"])
         print(decoded)
     except exceptions.ExpiredSignatureError:
         print("Token has expired")

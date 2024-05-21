@@ -6,6 +6,8 @@ from jwt import exceptions
 import json
 import base64
 import requests
+from cryptography.hazmat.primitives import serialization
+from cryptography.x509 import load_pem_x509_certificate
 
 TENANT_ID = 'aaaaa-aaaa-aaaaa'
 CLIENT_ID = 'bbbbb-bbbb-bbbbb'
@@ -24,10 +26,18 @@ def Validate_access_token(access_token):
     #get public key
     url = response["jwks_uri"]
     response = requests.get(url).json()
+    public_key = ""
+    for key in response["keys"]:
+        if key["x5t"] == header["kid"] and key["kid"] == header["kid"]:
+            public_key = key["x5c"][0]
+            break
 
     # verify access_token
     try:
-        decoded = jwt.decode(access_token, response["keys"], algorithms=["RS256"])
+        pem_public_key = f'''-----BEGIN CERTIFICATE-----\n{public_key}\n-----END CERTIFICATE-----'''
+        cert_obj = load_pem_x509_certificate(pem_public_key.encode())
+        public_key_obj = cert_obj.public_key()
+        decoded = jwt.decode(access_token, public_key_obj, algorithms=["RS256"])
         print(decoded)
     except exceptions.ExpiredSignatureError:
         print("Token has expired")
